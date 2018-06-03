@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+   <style rel="stylesheet">
+      .message-name {
+         font-weight: bold;
+      }
+   </style>
+
+   <title>Chat | by Vlad Poraiko</title>
+</head>
+
+<body>
+
+   <div class="container wrapper">
+
+      <form class="form-inline pb-3 pt-3" id="choose-name">
+         <h3>Chat | </h3>
+         <div class="input-group">
+            <input type="text" class="form-control ml-2" placeholder="Your name" name="name">
+            <div class="input-group-append">
+               <button class="btn btn-outline-secondary" type="submit">Ok</button>
+            </div>
+         </div>
+      </form>
+
+   </div>
+
+   <script>
+      let chooseName = document.querySelector('#choose-name');
+
+      chooseName.onsubmit = function(e) {
+         e.preventDefault();
+         let userName = this.elements.name.value;
+
+         if (userName === '') {
+            return false;
+         }
+
+         let content = document.createElement('div');
+         content.className = 'content';
+         content.innerHTML = `
+            <h3 class="pb-3 pt-3">
+               Chat | <span id="user-name">${userName}</span>
+            </h3>
+
+            <form id="publish">
+               <div class="form-row d-flex justify-content-between">
+                  <div class="col-10">
+                     <input type="text" name="message" class="form-control">
+                  </div>
+                  <div class="col-auto">
+                     <input type="submit" class="btn btn-primary" value="Send">
+                  </div>
+               </div>
+            </form>
+
+            <ul id="list-messages" class="list-group list-group-flush pt-4">
+
+            </ul>
+         `;
+
+         let wrapper = document.querySelector('.wrapper');
+
+         wrapper.removeChild(chooseName);
+         wrapper.appendChild(content);
+
+         document.querySelector('#publish').onsubmit = sendMsg;
+
+         subscribe();
+      };
+
+      function sendMsg() {
+         if (this.elements.message.value === '') {
+            return false;
+         }
+
+         let xhr = new XMLHttpRequest();
+
+         xhr.open('post', '/publish', true);
+
+         xhr.send(JSON.stringify({ message: this.elements.message.value, name: document.querySelector('#user-name').textContent }));
+
+         this.elements.message.value = '';
+
+         return false;
+      };
+
+      function subscribe() {
+         let xhr = new XMLHttpRequest();
+
+         xhr.open('get', '/subscribe', true);
+
+         xhr.onload = function() {
+            let body = JSON.parse(this.responseText);
+
+            let item = document.createElement('li');
+            item.className = 'row';
+            item.innerHTML = `
+               <div class="message-name">${body.name}</div>
+               ${body.message}
+            `;
+            item.className = 'list-group-item';
+      
+            let listMsg = document.querySelector('#list-messages');
+            listMsg.insertAdjacentElement('afterBegin', item);
+
+            subscribe();
+         };
+
+         xhr.onerror = function() {
+            setTimeout(subscribe, 300);
+         };
+
+         xhr.send('');
+      }
+   </script>
+
+</body>
+
+</html>
