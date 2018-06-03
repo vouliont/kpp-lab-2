@@ -1,61 +1,28 @@
-const http = require('http');
-const fs   = require('fs');
-const chat = require('./chat');
+const express = require('express');
+let app       = express();
+const server  = require('http').Server(app);
+const io      = require('socket.io')(server);
+const path    = require('path');
 
-http.createServer(function (req, res) {
-   switch (req.url) {
-      case '/':
-         sendFile('../files/index.html', res);
-         break;
-      case '/subscribe':
-         chat.subscribe(req, res);
-         break;
-      case '/publish':
-         let body = '';
+app.use(express.static('../files'));
 
-         req
-            .on('readable', function() {
-               let slice = req.read();
-               if (slice !== null) {
-                  body += slice;
-               }
-            })
-            .on('end', function() {
-               try {
-                  body = JSON.parse(body);
+app.get('/', function(req, res) {
+   res.send();
+});
 
-                  if (body.length > 1e4) {
-                     res.statusCode = 413;
-                     res.end('Message is too big!');
-                  }
-               } catch (e) {
-                  res.statusCode = 400;
-                  res.end('Bad Request');
-                  return;
-               }
+app.get('*', function(req, res) {
+   res.statusCode = 404;
+   res.sendFile(path.resolve(__dirname, '../files/error.html'));
+});
 
-               chat.publish(body);
-               res.end();
-            })
-         break;
-      default:
-         res.statusCode = 404;
-         res.end('Not found!');
-   }
-}).listen(8080);
-
-
-function sendFile(fileName, res) {
-   let fileStream = fs.createReadStream(fileName);
-
-   fileStream
-      .on('error', function() {
-         res.statusCode = 500;
-         res.end('Server Error');
-      })
-      .pipe(res);
-
-   res.on('close', function() {
-      fileStream.destroy();
+io.on('connection', function(socket) {
+   socket.on('send message to server', function(obj) {
+      io.emit('get message on client', obj);
    });
-}
+
+   socket.on('disconnect', function() {
+      
+   });
+});
+
+server.listen(8080);
